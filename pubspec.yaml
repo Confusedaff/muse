@@ -1,0 +1,34 @@
+name: muse
+description: A minimal, lightning-fast local music player.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Audio playback - lightest option
+  just_audio: ^0.9.36
+  
+  # Media scanning & metadata
+  on_audio_query: ^2.9.0
+  
+  # State management - minimal
+  provider: ^6.1.1
+  
+  # Audio session handling
+  audio_session: ^0.1.18
+  
+  # Permission handling
+  permission_handler: ^11.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
