@@ -1,113 +1,147 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/music_provider.dart';
-import '../providers/settings_provider.dart';
 import 'tracks_screen.dart';
-import 'albums_screen.dart';
-import 'artists_screen.dart';
-import 'playlists_screen.dart';
 import 'mini_player.dart';
 import 'settings_screen.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) {
+    final music = context.watch<MusicProvider>();
+
+    if (!music.hasPermission && !music.loading) {
+      return _PermissionScreen();
+    }
+
+    return const Scaffold(body: _TracksPage());
+  }
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  final List<String> _tabs = ['Playlists', 'Tracks', 'Albums', 'Artists'];
+// ─────────────────────────────────────────────────────────────────────────────
+// Main page: big title + toolbar + tracks list + mini player
+// ─────────────────────────────────────────────────────────────────────────────
+class _TracksPage extends StatefulWidget {
+  const _TracksPage();
 
   @override
-  void initState() {
-    super.initState();
-    final settings = context.read<SettingsProvider>();
-    _tabController = TabController(
-      length: _tabs.length,
-      vsync: this,
-      initialIndex: settings.defaultTab.clamp(0, _tabs.length - 1),
-    );
-  }
+  State<_TracksPage> createState() => _TracksPageState();
+}
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
+class _TracksPageState extends State<_TracksPage> {
+  final GlobalKey<TracksScreenState> _tracksKey =
+      GlobalKey<TracksScreenState>();
 
   @override
   Widget build(BuildContext context) {
     final music = context.watch<MusicProvider>();
     final theme = Theme.of(context);
 
-    if (!music.hasPermission && !music.loading) {
-      return _PermissionScreen();
-    }
-
-    return Scaffold(
-      body: Column(
-        children: [
-          // Custom app bar with title and tabs
-          SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 8, 0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TabBar(
-                          controller: _tabController,
-                          tabs: _tabs.map((t) => Tab(text: t)).toList(),
-                          isScrollable: true,
-                          tabAlignment: TabAlignment.start,
-                          labelColor: theme.colorScheme.primary,
-                          unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.5),
-                          indicatorColor: theme.colorScheme.primary,
-                          indicatorSize: TabBarIndicatorSize.label,
-                          labelStyle: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.3,
-                          ),
-                          dividerColor: Colors.transparent,
+    return Column(
+      children: [
+        // ── Big title header ─────────────────────────────────────
+        SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 28, 8, 4),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Center(
+                      child: Text(
+                        'Tracks',
+                        style: theme.textTheme.displayLarge?.copyWith(
+                          fontSize: 40,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.settings_outlined),
+                    ),
+                    Positioned(
+                      right: 0,
+                      child: IconButton(
+                        icon: Icon(Icons.settings_outlined,
+                            color: theme.colorScheme.primary, size: 22),
                         onPressed: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                          MaterialPageRoute(
+                              builder: (_) => const SettingsScreen()),
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+              // Accent underline
+              Container(
+                width: 56,
+                height: 2.5,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 4),
+            ],
+          ),
+        ),
+
+        // ── Toolbar: sort | track count | search ────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+          child: Row(
+            children: [
+              InkWell(
+                onTap: () => _tracksKey.currentState?.openSortMenu(),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Icon(Icons.sort_rounded,
+                      color: theme.colorScheme.primary, size: 22),
+                ),
+              ),
+              const Spacer(),
+              Consumer<MusicProvider>(
+                builder: (_, m, __) => Text(
+                  '${m.songs.length} tracks',
+                  style: TextStyle(
+                    color: theme.colorScheme.onSurface.withOpacity(0.4),
+                    fontSize: 12,
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: () => _tracksKey.currentState?.startSearch(),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Icon(Icons.search,
+                      color: theme.colorScheme.primary, size: 22),
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: const [
-                PlaylistsScreen(),
-                TracksScreen(),
-                AlbumsScreen(),
-                ArtistsScreen(),
-              ],
-            ),
-          ),
-          // Mini player
-          if (music.currentSong != null) const MiniPlayer(),
-        ],
-      ),
+        ),
+
+        // ── Tracks list ──────────────────────────────────────────
+        Expanded(child: TracksScreen(key: _tracksKey)),
+
+        // ── Mini player ──────────────────────────────────────────
+        if (music.currentSong != null) const MiniPlayer(),
+      ],
     );
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Permission screen
+// ─────────────────────────────────────────────────────────────────────────────
 class _PermissionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -127,17 +161,13 @@ class _PermissionScreen extends StatelessWidget {
                     color: theme.colorScheme.surfaceContainerHighest,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.music_note_rounded,
-                    size: 50,
-                    color: theme.colorScheme.primary,
-                  ),
+                  child: Icon(Icons.music_note_rounded,
+                      size: 50, color: theme.colorScheme.primary),
                 ),
                 const SizedBox(height: 32),
-                Text(
-                  'muse',
-                  style: theme.textTheme.displayLarge?.copyWith(fontSize: 42),
-                ),
+                Text('muse',
+                    style:
+                        theme.textTheme.displayLarge?.copyWith(fontSize: 42)),
                 const SizedBox(height: 16),
                 Text(
                   'Grant audio permission to play your music',
@@ -146,14 +176,18 @@ class _PermissionScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 40),
                 FilledButton(
-                  onPressed: () => context.read<MusicProvider>().requestPermission(),
+                  onPressed: () =>
+                      context.read<MusicProvider>().requestPermission(),
                   style: FilledButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
                     foregroundColor: theme.colorScheme.onPrimary,
-                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 40, vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24)),
                   ),
-                  child: const Text('Grant Permission', style: TextStyle(fontSize: 15)),
+                  child: const Text('Grant Permission',
+                      style: TextStyle(fontSize: 15)),
                 ),
               ],
             ),

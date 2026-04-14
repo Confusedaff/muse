@@ -5,6 +5,12 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:audio_session/audio_session.dart';
 import '../models/song.dart';
 
+// Playback cycle order (tapping the top-bar button):
+//   none  → shuffle → one  → all  → none …
+// none    = no repeat, no shuffle
+// shuffle = shuffle on, no repeat
+// one     = repeat this song (shuffle off)
+// all     = repeat playlist (shuffle off)
 enum RepeatMode { none, all, one }
 
 class MusicProvider extends ChangeNotifier {
@@ -22,8 +28,12 @@ class MusicProvider extends ChangeNotifier {
   SortField _sortField = SortField.title;
   SortOrder _sortOrder = SortOrder.ascending;
 
-  List<Song> get songs => _filtered.isEmpty && _searchQuery.isEmpty ? _songs : _filtered;
-  Song? get currentSong => _currentIndex >= 0 && _currentIndex < songs.length ? songs[_currentIndex] : null;
+  List<Song> get songs =>
+      _filtered.isEmpty && _searchQuery.isEmpty ? _songs : _filtered;
+  Song? get currentSong =>
+      _currentIndex >= 0 && _currentIndex < songs.length
+          ? songs[_currentIndex]
+          : null;
   bool get loading => _loading;
   bool get hasPermission => _hasPermission;
   AudioPlayer get player => _player;
@@ -108,19 +118,24 @@ class MusicProvider extends ChangeNotifier {
     int Function(Song, Song) compare;
     switch (_sortField) {
       case SortField.title:
-        compare = (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase());
+        compare = (a, b) =>
+            a.title.toLowerCase().compareTo(b.title.toLowerCase());
       case SortField.artist:
-        compare = (a, b) => a.artist.toLowerCase().compareTo(b.artist.toLowerCase());
+        compare = (a, b) =>
+            a.artist.toLowerCase().compareTo(b.artist.toLowerCase());
       case SortField.album:
-        compare = (a, b) => a.album.toLowerCase().compareTo(b.album.toLowerCase());
+        compare = (a, b) =>
+            a.album.toLowerCase().compareTo(b.album.toLowerCase());
       case SortField.genre:
         compare = (a, b) => (a.genre ?? '').compareTo(b.genre ?? '');
       case SortField.year:
         compare = (a, b) => (a.year ?? 0).compareTo(b.year ?? 0);
       case SortField.trackNumber:
-        compare = (a, b) => (a.trackNumber ?? 0).compareTo(b.trackNumber ?? 0);
+        compare =
+            (a, b) => (a.trackNumber ?? 0).compareTo(b.trackNumber ?? 0);
       case SortField.dateModified:
-        compare = (a, b) => (a.dateModified ?? 0).compareTo(b.dateModified ?? 0);
+        compare =
+            (a, b) => (a.dateModified ?? 0).compareTo(b.dateModified ?? 0);
     }
     _songs.sort(compare);
     if (_sortOrder == SortOrder.descending) _songs = _songs.reversed.toList();
@@ -156,7 +171,7 @@ class MusicProvider extends ChangeNotifier {
 
   Future<void> play(int index) async {
     final list = songs;
-    if (index < 0 || index >= list.size) return;
+    if (index < 0 || index >= list.length) return;
     _currentIndex = index;
     final song = list[index];
     try {
@@ -180,26 +195,24 @@ class MusicProvider extends ChangeNotifier {
     final list = songs;
     if (list.isEmpty) return;
     if (_shuffle) {
-      final next = (List.generate(list.length, (i) => i)..remove(_currentIndex)).toList();
-      if (next.isEmpty) return;
-      next.shuffle();
-      await play(next.first);
+      final indices =
+          List.generate(list.length, (i) => i)..remove(_currentIndex);
+      if (indices.isEmpty) return;
+      indices.shuffle();
+      await play(indices.first);
     } else {
-      final nextIdx = (_currentIndex + 1) % list.length;
-      await play(nextIdx);
+      await play((_currentIndex + 1) % list.length);
     }
   }
 
   Future<void> previous() async {
-    final pos = _player.position;
-    if (pos.inSeconds > 3) {
+    if (_player.position.inSeconds > 3) {
       await _player.seek(Duration.zero);
       return;
     }
     final list = songs;
     if (list.isEmpty) return;
-    final prevIdx = (_currentIndex - 1 + list.length) % list.length;
-    await play(prevIdx);
+    await play((_currentIndex - 1 + list.length) % list.length);
   }
 
   Future<void> seek(Duration position) async {
@@ -207,6 +220,10 @@ class MusicProvider extends ChangeNotifier {
   }
 
   void _onTrackComplete() {
+    if (_shuffle) {
+      next();
+      return;
+    }
     switch (_repeatMode) {
       case RepeatMode.one:
         _player.seek(Duration.zero);
@@ -214,10 +231,40 @@ class MusicProvider extends ChangeNotifier {
       case RepeatMode.all:
         next();
       case RepeatMode.none:
-        next();
+        final list = songs;
+        if (_currentIndex < list.length - 1) {
+          next();
+        }
+        // else: last song, just stop
     }
   }
 
+  /// Cycles playback mode in this order:
+  ///   none (no repeat, no shuffle)
+  ///   → shuffle (shuffle on)
+  ///   → repeat one (shuffle off, repeat this song)
+  ///   → repeat all (shuffle off, repeat playlist)
+  ///   → none …
+  void cyclePlaybackMode() {
+    if (!_shuffle && _repeatMode == RepeatMode.none) {
+      // none → shuffle
+      _shuffle = true;
+      _repeatMode = RepeatMode.none;
+    } else if (_shuffle) {
+      // shuffle → repeat one
+      _shuffle = false;
+      _repeatMode = RepeatMode.one;
+    } else if (_repeatMode == RepeatMode.one) {
+      // repeat one → repeat all
+      _repeatMode = RepeatMode.all;
+    } else {
+      // repeat all → none
+      _repeatMode = RepeatMode.none;
+    }
+    notifyListeners();
+  }
+
+  /// Legacy individual toggles (kept for compatibility if used elsewhere)
   void cycleRepeat() {
     switch (_repeatMode) {
       case RepeatMode.none:

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'providers/music_provider.dart';
 import 'providers/settings_provider.dart';
 import 'screens/home_screen.dart';
+import 'screens/onboarding_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,7 +39,11 @@ class MuseApp extends StatelessWidget {
       themeMode: settings.themeMode,
       theme: MuseTheme.lightTheme,
       darkTheme: MuseTheme.darkTheme,
-      home: const HomeScreen(),
+      initialRoute: '/onboarding',
+      routes: {
+        '/onboarding': (_) => const OnboardingGate(),
+        '/home': (_) => const HomeScreen(),
+      },
     );
   }
 }
@@ -46,7 +51,6 @@ class MuseApp extends StatelessWidget {
 class MuseTheme {
   static const Color _primaryGreen = Color(0xFF4CAF78);
   static const Color _darkBg = Color(0xFF080F08);
-  // static const Color _darkSurface = Color(0xFF101A10);
   static const Color _darkCard = Color(0xFF172017);
 
   static ThemeData get darkTheme => ThemeData(

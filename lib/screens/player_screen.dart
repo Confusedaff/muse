@@ -18,41 +18,59 @@ class PlayerScreen extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top bar
+            // ── Top bar ──────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 32),
+                    icon: Icon(Icons.keyboard_arrow_down_rounded,
+                        size: 32, color: theme.colorScheme.primary),
                     onPressed: () => Navigator.pop(context),
                   ),
                   const Spacer(),
-                  IconButton(icon: const Icon(Icons.timer_outlined, size: 22), onPressed: () {}),
-                  IconButton(icon: const Icon(Icons.queue_music_rounded, size: 22), onPressed: () {}),
-                  IconButton(icon: const Icon(Icons.lyrics_outlined, size: 22), onPressed: () {}),
-                  // Repeat
-                  _RepeatButton(),
-                  IconButton(icon: const Icon(Icons.more_vert, size: 22), onPressed: () {}),
+                  IconButton(
+                    icon: Icon(Icons.timer_outlined,
+                        size: 22, color: theme.colorScheme.primary),
+                    onPressed: () {},
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.queue_music_rounded,
+                        size: 22, color: theme.colorScheme.primary),
+                    onPressed: () {},
+                  ),
+                  IconButton(
+                    icon: Icon(Icons.lyrics_outlined,
+                        size: 22, color: theme.colorScheme.primary),
+                    onPressed: () {},
+                  ),
+                  // Combined shuffle/repeat cycle button
+                  _CycleButton(),
+                  IconButton(
+                    icon: Icon(Icons.more_vert,
+                        size: 22, color: theme.colorScheme.primary),
+                    onPressed: () {},
+                  ),
                 ],
               ),
             ),
-            const Spacer(flex: 2),
-            // Album art
+
+            // ── Album art — nearly full width ────────────────────────
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 40),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: AspectRatio(
                 aspectRatio: 1,
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   child: QueryArtworkWidget(
                     id: song.albumId ?? song.id,
                     type: ArtworkType.ALBUM,
                     nullArtworkWidget: Container(
                       decoration: BoxDecoration(
                         color: theme.colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
                         Icons.music_note_rounded,
@@ -60,64 +78,69 @@ class PlayerScreen extends StatelessWidget {
                         color: theme.colorScheme.primary.withOpacity(0.5),
                       ),
                     ),
-                    artworkBorder: BorderRadius.circular(16),
+                    artworkBorder: BorderRadius.circular(12),
                     artworkFit: BoxFit.cover,
+                    artworkWidth: 800,
+                    artworkHeight: 800,
                     keepOldArtwork: true,
+                    quality: 100,
                   ),
                 ),
               ),
             ),
-            const Spacer(flex: 2),
-            // Song info
+
+            const SizedBox(height: 16),
+
+            // ── Song info ────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     song.title,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleLarge?.copyWith(fontSize: 20, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    song.artist,
-                    textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: theme.colorScheme.primary, fontSize: 14),
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    song.artist,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontSize: 15,
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            // Progress
+
+            const SizedBox(height: 12),
+
+            // ── Progress bar ─────────────────────────────────────────
+            _ProgressBar(),
+
+            const SizedBox(height: 4),
+
+            // ── Controls ─────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: _ProgressBar(),
-            ),
-            const SizedBox(height: 8),
-            // Controls
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Shuffle
+                  // Left placeholder to balance layout (shuffle removed from here)
+                  const SizedBox(width: 40),
                   IconButton(
-                    icon: Icon(
-                      Icons.shuffle_rounded,
-                      color: music.shuffle ? theme.colorScheme.primary : theme.colorScheme.onSurface.withOpacity(0.4),
-                    ),
-                    onPressed: music.toggleShuffle,
-                  ),
-                  // Previous
-                  IconButton(
-                    icon: Icon(Icons.skip_previous_rounded, size: 36, color: theme.colorScheme.onSurface),
+                    icon: Icon(Icons.skip_previous_rounded,
+                        size: 40, color: theme.colorScheme.onSurface),
                     onPressed: music.previous,
                   ),
-                  // Play/Pause
                   StreamBuilder<PlayerState>(
                     stream: music.playerStateStream,
                     builder: (_, snap) {
@@ -125,32 +148,32 @@ class PlayerScreen extends StatelessWidget {
                       return GestureDetector(
                         onTap: music.playPause,
                         child: Container(
-                          width: 64,
-                          height: 64,
+                          width: 72,
+                          height: 72,
                           decoration: BoxDecoration(
                             color: theme.colorScheme.primary,
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                            playing
+                                ? Icons.pause_rounded
+                                : Icons.play_arrow_rounded,
                             color: theme.colorScheme.onPrimary,
-                            size: 36,
+                            size: 40,
                           ),
                         ),
                       );
                     },
                   ),
-                  // Next
                   IconButton(
-                    icon: Icon(Icons.skip_next_rounded, size: 36, color: theme.colorScheme.onSurface),
+                    icon: Icon(Icons.skip_next_rounded,
+                        size: 40, color: theme.colorScheme.onSurface),
                     onPressed: music.next,
                   ),
-                  // Repeat placeholder - empty space
-                  const SizedBox(width: 48),
+                  const SizedBox(width: 40),
                 ],
               ),
             ),
-            const Spacer(flex: 1),
           ],
         ),
       ),
@@ -172,27 +195,39 @@ class _ProgressBar extends StatelessWidget {
           builder: (_, durSnap) {
             final pos = posSnap.data ?? Duration.zero;
             final dur = durSnap.data ?? Duration.zero;
-            final fraction = dur.inMilliseconds > 0 ? pos.inMilliseconds / dur.inMilliseconds : 0.0;
+            final fraction = dur.inMilliseconds > 0
+                ? (pos.inMilliseconds / dur.inMilliseconds).clamp(0.0, 1.0)
+                : 0.0;
 
             return Column(
               children: [
                 SliderTheme(
-                  data: Theme.of(context).sliderTheme.copyWith(
-                    trackHeight: 3,
-                    thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+                  data: theme.sliderTheme.copyWith(
+                    trackHeight: 4,
+                    thumbShape:
+                        const RoundSliderThumbShape(enabledThumbRadius: 8),
                   ),
                   child: Slider(
-                    value: fraction.clamp(0.0, 1.0),
-                    onChanged: (v) => music.seek(Duration(milliseconds: (v * dur.inMilliseconds).round())),
+                    value: fraction,
+                    onChanged: (v) => music.seek(Duration(
+                        milliseconds: (v * dur.inMilliseconds).round())),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(_fmt(pos), style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.5))),
-                      Text(_fmt(dur), style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.5))),
+                      Text(_fmt(pos),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: theme.colorScheme.onSurface
+                                  .withOpacity(0.55))),
+                      Text(_fmt(dur),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: theme.colorScheme.onSurface
+                                  .withOpacity(0.55))),
                     ],
                   ),
                 ),
@@ -207,26 +242,51 @@ class _ProgressBar extends StatelessWidget {
   String _fmt(Duration d) {
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$m:$s';
+    return '${d.inHours > 0 ? '${d.inHours}:' : ''}$m:$s';
   }
 }
 
-class _RepeatButton extends StatelessWidget {
+/// Cycles through: none → shuffle → repeat one → repeat all
+/// - none       : repeat icon, dim (no highlight)
+/// - shuffle    : shuffle icon, highlighted
+/// - repeat one : repeat_one icon, highlighted
+/// - repeat all : repeat icon, highlighted
+class _CycleButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final music = context.watch<MusicProvider>();
     final theme = Theme.of(context);
-    final color = music.repeatMode != RepeatMode.none
-        ? theme.colorScheme.primary
-        : theme.colorScheme.onSurface.withOpacity(0.4);
+
+    // Determine icon and active state based on current mode
+    final IconData icon;
+    final bool active;
+
+    if (music.shuffle) {
+      icon = Icons.shuffle_rounded;
+      active = true;
+    } else {
+      switch (music.repeatMode) {
+        case RepeatMode.none:
+          icon = Icons.repeat_rounded;
+          active = false;
+        case RepeatMode.one:
+          icon = Icons.repeat_one_rounded;
+          active = true;
+        case RepeatMode.all:
+          icon = Icons.repeat_rounded;
+          active = true;
+      }
+    }
 
     return IconButton(
       icon: Icon(
-        music.repeatMode == RepeatMode.one ? Icons.repeat_one_rounded : Icons.repeat_rounded,
-        color: color,
+        icon,
         size: 22,
+        color: active
+            ? theme.colorScheme.primary
+            : theme.colorScheme.primary.withOpacity(0.4),
       ),
-      onPressed: music.cycleRepeat,
+      onPressed: music.cyclePlaybackMode,
     );
   }
 }
